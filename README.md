@@ -47,6 +47,25 @@
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
 
+--------
+
+### Environment Example
+
+    # src/data/dotenv_example.py
+    # Example script showing how to utilize environment variables
+    # to store sensitive information (addresses, username, passwords).
+
+    import os
+    from dotenv import load_dotenv, find_dotenv
+
+    # find .env automagically by walking up directories until it's found
+    dotenv_path = find_dotenv()
+
+    # load up the entries as environment variables
+    load_dotenv(dotenv_path)
+
+    database_url = os.environ.get("DATABASE_URL")
+    other_variable = os.environ.get("OTHER_VARIABLE")
 
 --------
 
