@@ -36,26 +36,35 @@ def get_env_url():
 schemas = (
     """
     CREATE TABLE IF NOT EXISTS "import_tweets" (
-	    "id" bigint NOT NULL,
-	    "created_at" TIMESTAMP NOT NULL,
-	    "text" TEXT,
-	    "user" TEXT NOT NULL,
-	    "lang" varchar(2),
-	    "coordinates" TEXT,
-	    CONSTRAINT import_tweets_pk PRIMARY KEY ("id")
+	    "tweetID" BIGINT NOT NULL,
+	    "date" TIMESTAMP,
+	    "message" TEXT,
+	    "username" TEXT,
+        "userID" BIGINT NOT NULL,
+	    "language" VARCHAR(2),
+	    "longitude" FLOAT,
+        "latitude" FLOAT,
+        "retweet" TEXT,
+        "source" TEXT
+	    CONSTRAINT import_tweets_pk PRIMARY KEY ("tweetID")
     ) WITH (
         OIDS=FALSE
     );
     """,
+    # In the filtered table we should set the column values.
     """
     CREATE TABLE IF NOT EXISTS "filter_tweets" (
-	    "id" bigint NOT NULL,
-	    "created_at" TIMESTAMP NOT NULL,
-	    "text" TEXT,
-	    "user" TEXT NOT NULL,
-	    "lang" varchar(2),
-	    "coordinates" TEXT,
-	    CONSTRAINT filter_tweets_pk PRIMARY KEY ("id")
+	    "tweetID" BIGINT NOT NULL,
+	    "date" TIMESTAMP,
+	    "message" TEXT,
+	    "username" TEXT,
+        "userID" BIGINT NOT NULL,
+	    "language" VARCHAR(2),
+	    "longitude" FLOAT,
+        "latitude" FLOAT,
+        "retweet" TEXT,
+        "source" TEXT
+	    CONSTRAINT filter_tweets_pk PRIMARY KEY ("tweetID")
     ) WITH (
         OIDS=FALSE
     );
