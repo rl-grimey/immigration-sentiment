@@ -63,6 +63,10 @@ test_environment:
 # PROJECT RULES                                                                 #
 #################################################################################
 
+## Create PostgreSQL tables if they don't exist
+create_tables: requirements
+	$(PYTHON_INTERPRETER) src/data/make_database.py
+
 
 
 #################################################################################
