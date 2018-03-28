@@ -64,7 +64,7 @@ def import_file(filepath, db):
     
     # Try reading the file
     try:
-        df = pd.read_csv(filepath, usecols=cols, engine='c')
+        df = pd.read_csv(filepath, usecols=cols, engine='c', nrows=1000)
     except Exception as e:
         log_import.warn('error on read_csv')
         memory_buff.close()
@@ -86,7 +86,8 @@ def import_file(filepath, db):
     # Try copying the files to table.
     try:
         # Save to our buffer
-        df[cols].to_csv(memory_buff, sep='\t', header=True, index=False)
+        df[cols].to_csv(memory_buff, sep='\t',
+                        header=True, index=False, encoding='utf-8')
 
         # Point buffer to start of memory block
         memory_buff.seek(0)
