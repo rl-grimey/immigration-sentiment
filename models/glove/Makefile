@@ -1,9 +1,12 @@
+# Clean up archive
+cleanup: glove.twitter.27B.zip
+	rm *.zip
 
 
 # Unzip all text files within and touch em
-%.txt: glove.twitter.27B.zip
-	@unzip -o glove.twitter.27B.zip
-	$@touch
+glove.twitter.27B.200d.txt: glove.twitter.27B.zip
+	unzip -o glove.twitter.27B.zip
+	touch *.txt
 
 # Download zip from Standford NLP
 glove.twitter.27B.zip:
