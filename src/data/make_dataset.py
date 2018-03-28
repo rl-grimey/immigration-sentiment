@@ -64,7 +64,7 @@ def import_file(filepath, db):
     
     # Try reading the file
     try:
-        df = pd.read_csv(filepath, usecols=cols, nrows=250, engine='c')
+        df = pd.read_csv(filepath, usecols=cols, engine='c')
     except Exception as e:
         log_import.warn('error on read_csv')
         memory_buff.close()
@@ -137,7 +137,9 @@ def main(input_filepath, output_filepath):
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%H:%M:%S')
+    logging.basicConfig(level=logging.INFO, 
+                    format=log_fmt, datefmt='%H:%M:%S',
+                    filename='pipeline.log', filemode='w')
 
     # not used in this stub but often useful for finding various files
     project_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
