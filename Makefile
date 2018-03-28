@@ -19,6 +19,12 @@ endif
 # COMMANDS                                                                      #
 #################################################################################
 
+## Extract, Transform, Load Stanford NLP's GloVe model
+glove:
+	$(MAKE) -C models/glove
+
+
+
 ## Make Dataset
 data: create_tables
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py
