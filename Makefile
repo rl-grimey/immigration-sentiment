@@ -28,6 +28,11 @@ requirements: test_environment
 data: requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py
 
+## Make Dataset... without reqs.
+data2: create_tables
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
