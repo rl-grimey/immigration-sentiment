@@ -114,4 +114,4 @@ ENV/
 /data/
 
 # Exclude downloaded GloVe model
-model/glove/glove.twitter.27B.*.txt
+models/glove/glove.twitter.27B.*.txt

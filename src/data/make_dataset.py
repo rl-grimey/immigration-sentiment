@@ -64,7 +64,7 @@ def import_file(filepath, db):
     
     # Try reading the file
     try:
-        df = pd.read_csv(filepath, usecols=cols, engine='c', nrows=1000)
+        df = pd.read_csv(filepath, usecols=cols, engine='c', nrows=2000)
     except Exception as e:
         log_import.warn('error on read_csv')
         memory_buff.close()
