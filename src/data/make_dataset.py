@@ -107,7 +107,7 @@ def import_file(filepath, db):
         memory_buff.close()
         if curr is not None:
             curr.close()
-    log_import.info('finished ({})'.format((time() - start) / 1000)
+    log_import.info('finished ({})'.format((time() - start) / 1000))
     return
 
 
@@ -119,6 +119,7 @@ def main(input_filepath, output_filepath):
         cleaned data ready to be analyzed (saved in ../processed).
     """
     # Logging set up
+    start = time()
     logger = logging.getLogger(__name__)
     logger.info('Making final data set from raw data\ngathering file names...')
     
@@ -132,6 +133,7 @@ def main(input_filepath, output_filepath):
     for csv in csvs[:]:
         import_file(csv, db_engine)
 
+    logger.info('{} files done in {} secs.'.format(len(csvs), time() - start))
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

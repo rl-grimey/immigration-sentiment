@@ -34,6 +34,8 @@ def get_env_url():
 ###############################################################################
 
 schemas = (
+    """DROP TABLE "filter_tweets";""",
+    """DROP TABLE "raw_tweets";""",
     """
     CREATE TABLE IF NOT EXISTS "raw_tweets" (
         "id" SERIAL NOT NULL,
@@ -42,7 +44,7 @@ schemas = (
 	    "message" TEXT,
 	    "username" TEXT,
         "userID" BIGINT NOT NULL,
-	    "language" VARCHAR(5),
+	    "language" VARCHAR(10),
 	    "longitude" FLOAT,
         "latitude" FLOAT,
         "retweet" TEXT,
@@ -60,7 +62,7 @@ schemas = (
 	    "message" TEXT,
 	    "username" TEXT,
         "userID" BIGINT NOT NULL,
-	    "language" VARCHAR(5),
+	    "language" VARCHAR(10),
 	    "longitude" FLOAT,
         "latitude" FLOAT,
         "retweet" TEXT
