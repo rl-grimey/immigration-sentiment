@@ -7,6 +7,7 @@ from dotenv import find_dotenv, load_dotenv
 import pandas as pd
 from sqlalchemy import create_engine
 from io import StringIO
+from time import time
 
 
 def get_twitter_files(input_filepath):
@@ -39,67 +40,75 @@ def get_twitter_files(input_filepath):
 
 
 def import_file(filepath, db):
-        """ Function that imports a file into our database using the native COPY
-            command. 
-            :param: filepath - Valid filepath
-            :param: db - Database connection from SQLAlchemy.
-            :returns: Boolean indicating if the file was sucessfully uploaded.
-        """
-        
-        # Logging
-        log_main = logging.getLogger(__name__)
-        log_import = log_main.getChild(filepath.split('/')[-1])
+    """ Function that imports a file into our database using the native COPY
+        command. 
+        :param: filepath - Valid filepath
+        :param: db - Database connection from SQLAlchemy.
+        :returns: Boolean indicating if the file was sucessfully uploaded.
+    """
+    # Logging
+    log_main = logging.getLogger(__name__)
+    log_import = log_main.getChild(filepath.split('/')[-1])
+    log_import.info('started')
+    start = time()
 
-        memory_buff = StringIO()
-        curr        = None
-        cols = ['tweetID', 'date', 'message', 'username', 'userID', 'language',
-                'longitude', 'latitude', 'retweet']
-        sql = """COPY "import_tweets" ("tweetID", "date", "message", "username", "userID", "language", "longitude", "latitude", "retweet") 
-        FROM STDIN 
-        WITH (FORMAT CSV, HEADER TRUE, DELIMITER '\t');
-        """
-        
-        # Try reading the file
-        try:
-            df = pd.read_csv(filepath, usecols=cols, nrows=250)
-        except:
-            print('Couldn\'t open the file!')
-            memory_buff.close()
-            return
-
-        # Attempt to open up a connection to database.
-        try:
-            conn = db.raw_connection()
-            curr = conn.cursor()
-        except (Exception) as e:
-            print ('Couldn\'t connect to the server!: ', e)
-            memory_buff.close()
-            if curr is not None:
-                curr.close()
-            return
-
-        # Try copying the files to table.
-        try:
-            # Save to our buffer
-            df[cols].to_csv(memory_buff, sep='\t', header=True, index=False)
-
-            # Point buffer to start of memory block
-            memory_buff.seek(0)
-
-            # Copy records using native Postgres COPY command (FAST)
-            curr.copy_expert(sql, memory_buff)
-
-            # Save transaction and commit to DB
-            conn.commit()
-        except (Exception) as e:
-            print('Couldn\'t copy files! :', e)
-        finally:
-            memory_buff.close()
-            if curr is not None:
-                curr.close()
-
-        log_import.info('Success!')
+    # Variables used in data processing
+    memory_buff = StringIO()
+    curr        = None
+    cols        = ['tweetID', 'date', 'message', 'username', 'userID', 'language',
+                    'longitude', 'latitude', 'retweet']
+    sql = """COPY "raw_tweets" ("tweetID", "date", "message", "username", "userID", "language", "longitude", "latitude", "retweet") 
+    FROM STDIN 
+    WITH (FORMAT CSV, HEADER TRUE, DELIMITER '\t');
+    """
+    
+    # Try reading the file
+    try:
+        df = pd.read_csv(filepath, usecols=cols, nrows=250, engine='c')
+    except Exception as e:
+        log_import.warn('error on read_csv')
+        memory_buff.close()
+        print (e)
         return
+
+    # Attempt to open up a connection to database.
+    try:
+        conn = db.raw_connection()
+        curr = conn.cursor()
+    except (Exception) as e:
+        log_import.warn('error on server connection')
+        memory_buff.close()
+        if curr is not None:
+            curr.close()
+        print (e)
+        return
+
+    # Try copying the files to table.
+    try:
+        # Save to our buffer
+        df[cols].to_csv(memory_buff, sep='\t', header=True, index=False)
+
+        # Point buffer to start of memory block
+        memory_buff.seek(0)
+
+        # Copy records using native Postgres COPY command (FAST)
+        curr.copy_expert(sql, memory_buff)
+
+        # Save transaction and commit to DB
+        conn.commit()
+    except (Exception) as e:
+        log_import.warn('error while copying to database')
+        memory_buff.close()
+        if curr is not None:
+            curr.close()
+        print (e)
+        return
+    finally:
+        memory_buff.close()
+        if curr is not None:
+            curr.close()
+    log_import.info('finished ({})'.format((time() - start) / 1000)
+    return
 
 
 @click.command()
@@ -111,22 +120,22 @@ def main(input_filepath, output_filepath):
     """
     # Logging set up
     logger = logging.getLogger(__name__)
-    logger.info('Making final data set from raw data')
-    logger.info('gathering file names...')
+    logger.info('Making final data set from raw data\ngathering file names...')
     
     # Dataset variables
     import_url = os.environ.get('IMPORT_URL')
     db_engine = create_engine(import_url, client_encoding='utf8')
     csvs = get_twitter_files(input_filepath)
     
+    # Upload data
+    logger.info('Starting to upload {} csvs...'.format(len(csvs)))
     for csv in csvs[:]:
-        logger.info('CALLING import {}'.format(csv))
         import_file(csv, db_engine)
 
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_fmt)
+    logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%H:%M:%S')
 
     # not used in this stub but often useful for finding various files
     project_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
@@ -136,6 +145,6 @@ if __name__ == '__main__':
     load_dotenv(find_dotenv())
     
     # Clear terminal before outputting a bynch of logs
-    click.clear()
+    #click.clear()
 
     main()
