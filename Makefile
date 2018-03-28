@@ -19,11 +19,10 @@ endif
 # COMMANDS                                                                      #
 #################################################################################
 
-## Extract, Transform, Load Stanford NLP's GloVe model
-glove:
+## Download NLTK + GloVe models
+models: requirements
+	$(PYTHON_INTERPRETER) -m nltk.downloader stopwords verbnet punkt
 	$(MAKE) -C models/glove
-
-
 
 ## Make Dataset
 data: create_tables
