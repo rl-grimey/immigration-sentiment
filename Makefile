@@ -19,28 +19,27 @@ endif
 # COMMANDS                                                                      #
 #################################################################################
 
+## Make Dataset
+data: create_tables
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+
+## Create PostgreSQL tables if they don't exist
+create_tables: requirements
+	$(PYTHON_INTERPRETER) src/data/make_database.py
+
 ## Install Python Dependencies
 requirements: test_environment
-	pip install -U pip setuptools wheel
-	pip install -r requirements.txt
+	pip install -qU pip setuptools wheel
+	pip install -qr requirements.txt
 
-## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py
-
-## Make Dataset... without reqs.
-data2: create_tables
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py
-
+## Test python environment is setup correctly
+test_environment:
+	$(PYTHON_INTERPRETER) test_environment.py
 
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
-
-## Lint using flake8
-lint:
-	flake8 src
 
 ## Set up python interpreter environment
 create_environment:
@@ -60,17 +59,11 @@ else
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
 
-## Test python environment is setup correctly
-test_environment:
-	$(PYTHON_INTERPRETER) test_environment.py
 
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
 
-## Create PostgreSQL tables if they don't exist
-create_tables: requirements
-	$(PYTHON_INTERPRETER) src/data/make_database.py
 
 
 
