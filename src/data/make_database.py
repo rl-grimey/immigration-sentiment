@@ -35,7 +35,7 @@ def get_env_url():
 
 schemas = (
     """
-    CREATE TABLE IF NOT EXISTS "import_tweets" (
+    CREATE TABLE IF NOT EXISTS "raw_tweets" (
         "id" SERIAL NOT NULL,
 	    "tweetID" BIGINT NOT NULL,
 	    "date" TIMESTAMP,
@@ -46,7 +46,7 @@ schemas = (
 	    "longitude" FLOAT,
         "latitude" FLOAT,
         "retweet" TEXT,
-	    CONSTRAINT import_tweets_pk PRIMARY KEY ("id")
+	    CONSTRAINT raw_tweets_pk PRIMARY KEY ("id")
     ) WITH (
         OIDS=FALSE
     );
@@ -69,7 +69,7 @@ schemas = (
     );
     """,
     """
-    ALTER TABLE "filter_tweets" ADD CONSTRAINT "filter_fk0" FOREIGN KEY ("id") REFERENCES "import_tweets"("id");
+    ALTER TABLE "filter_tweets" ADD CONSTRAINT "filter_fk0" FOREIGN KEY ("id") REFERENCES "raw_tweets"("id");
     """
 )
 
