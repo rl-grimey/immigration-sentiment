@@ -1,5 +1,7 @@
+all: cleanup
+
 # Clean up archive
-cleanup: glove.twitter.27B.zip
+cleanup: glove.twitter.27B.200d.txt
 	rm *.zip
 
 
