@@ -46,6 +46,11 @@ clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
+#######
+## Activate our conda environment
+activate_environment:
+	
+
 ## Set up python interpreter environment
 create_environment:
 ifeq (True,$(HAS_CONDA))
