@@ -21,8 +21,8 @@ endif
 
 ## Download NLTK + GloVe models
 models: 
-	$(PYTHON_INTERPRETER) -m nltk.downloader stopwords verbnet punkt
-	$(MAKE) -C models/glove
+	#$(PYTHON_INTERPRETER) -m nltk.downloader stopwords verbnet punkt wordnet
+	$(MAKE) -C models
 
 ## Make Dataset
 data: create_tables
