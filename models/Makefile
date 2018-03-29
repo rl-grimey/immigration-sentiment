@@ -1,16 +1,33 @@
-all: cleanup
+###############################################################################
+# Makefile to download and convert GloVe models to word2vec					  #
+###############################################################################
 
-# Clean up archive
-cleanup: glove.twitter.27B.200d.txt
-	rm *.zip
+ZIP=glove/glove.twitter.27B.zip
+DIM := 25 50 100 250
+GLOVEFS := $(foreach d, $(DIM), glove/glove.twitter.$(d)d.txt)
+WORDFS := $(foreach d, $(DIM), word2vec/word2vec.twitter.$(d)d.txt)
+SCRIPT=python -m gensim.scripts.glove2word2vec
 
+all: clean
 
-# Unzip all text files within and touch em
-glove.twitter.27B.200d.txt: glove.twitter.27B.zip
-	unzip -o glove.twitter.27B.zip
-	touch *.txt
-
-# Download zip from Standford NLP
-glove.twitter.27B.zip:
-	wget --no-use-server-timestamps \
+# Download GloVe zip from internet
+$(ZIP):
+	mkdir -p glove/
+	wget --no-use-server-timestamps -o $(ZIP) \
 	http://nlp.stanford.edu/data/glove.twitter.27B.zip
+
+# Unzip GloVe zip file and touch
+$(GLOVEFS): $(ZIP)
+	unzip -j -n $(ZIP) -d glove/
+	touch $(GLOVEFS)
+
+# Each word2vec is created directly from it's corresponding 
+# GloVe n-dimension vector
+$(WORDFS): $(GLOVEFS)
+	mkdir -p word2vec/
+	$(foreach d, $(DIM), \
+		$(shell cp glove/a.b.$(d)d.txt -T word2vec/c.d.$(d)d.txt))
+
+# Remove the downloaded zip file after the word2vec vectors are made
+clean: $(WORDFS)
+	rm $(ZIP)
