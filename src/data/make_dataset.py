@@ -4,6 +4,7 @@ import click
 import logging
 from dotenv import find_dotenv, load_dotenv
 
+import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 from io import StringIO
@@ -64,7 +65,8 @@ def import_file(filepath, db):
     
     # Try reading the file
     try:
-        df = pd.read_csv(filepath, usecols=cols, engine='c', nrows=2000)
+        df = pd.read_csv(filepath, usecols=cols, engine='c', 
+                        dtype={'userID': np.int64, 'tweetID': np.int64})
     except Exception as e:
         log_import.warn('error on read_csv')
         memory_buff.close()
@@ -131,8 +133,9 @@ def main(input_filepath, output_filepath):
     
     # Upload data
     logger.info('Starting to upload {} csvs...'.format(len(csvs)))
-    for csv in csvs[:]:
-        import_file(csv, db_engine)
+    with click.progressbar(csvs, label='CSV Imports: ') as csv_progress:
+        for csv in csv_progress:
+            import_file(csv, db_engine)
 
     logger.info('{} files done in {} secs.'.format(len(csvs), time() - start))
 
