@@ -4,6 +4,7 @@ import click
 import logging
 from dotenv import find_dotenv, load_dotenv
 
+import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 from io import StringIO
@@ -11,12 +12,17 @@ from time import time
 
 
 def get_twitter_files(input_filepath):
-    """ Returns a list of all .csv files in the input directory.
-        :param: input_filepath - File path to directory containing raw twitter scrapes.
-        :returns: List of .csv filepaths for importing.
+    """ Function that returns a list of all *.csv files in a directory.
+
+        Args:
+            input_filepath (str):  File path to directory containing raw twitter scrapes.
+        
+        Returns:
+            filtered_files (list): List of formatted filepaths pointing to .csv files.
     """
     log_main = logging.getLogger(__name__)
-    log_files = log_main.getChild('find_files')
+    log_import = log_main.getChild('import_files')
+    log_files = log_import.getChild('find_files')
     log_files.info('Gathering files to import.')
 
     filtered_files = []
@@ -40,15 +46,19 @@ def get_twitter_files(input_filepath):
 
 
 def import_file(filepath, db):
-    """ Function that imports a file into our database using the native COPY
-        command. 
-        :param: filepath - Valid filepath
-        :param: db - Database connection from SQLAlchemy.
-        :returns: Boolean indicating if the file was sucessfully uploaded.
+    """ Function that imports a CSV into our database using the native PostgreSQL COPY command. 
+
+        Args:
+            filepath (str): Valid path to a .csv file
+            db (sqlalchemy.Engine): Database connection from SQLAlchemy.
+        
+        Returns:
+            None: But will write file upload success/failure and stats to a log file.
     """
     # Logging
     log_main = logging.getLogger(__name__)
-    log_import = log_main.getChild(filepath.split('/')[-1])
+    log_import = log_main.getChild('import_files')
+    log_import = log_import.getChild(filepath.split('/')[-1])
     log_import.info('started')
     start = time()
 
@@ -64,7 +74,10 @@ def import_file(filepath, db):
     
     # Try reading the file
     try:
-        df = pd.read_csv(filepath, usecols=cols, nrows=250, engine='c')
+        df = pd.read_csv(filepath, 
+                        usecols=cols, engine='c', 
+                        memory_map=True, low_memory=False,
+                        dtype={'userID': np.int64, 'tweetID': np.int64})
     except Exception as e:
         log_import.warn('error on read_csv')
         memory_buff.close()
@@ -73,6 +86,7 @@ def import_file(filepath, db):
 
     # Attempt to open up a connection to database.
     try:
+        connn = db.connect()
         conn = db.raw_connection()
         curr = conn.cursor()
     except (Exception) as e:
@@ -86,7 +100,8 @@ def import_file(filepath, db):
     # Try copying the files to table.
     try:
         # Save to our buffer
-        df[cols].to_csv(memory_buff, sep='\t', header=True, index=False)
+        df[cols].to_csv(memory_buff, sep='\t',
+                        header=True, index=False, encoding='utf-8')
 
         # Point buffer to start of memory block
         memory_buff.seek(0)
@@ -107,35 +122,42 @@ def import_file(filepath, db):
         memory_buff.close()
         if curr is not None:
             curr.close()
-    log_import.info('finished ({})'.format((time() - start) / 1000)
+    log_import.info('finished ({:.2f})'.format(time() - start))
     return
 
 
 @click.command()
 @click.argument('input_filepath', type=click.Path(exists=True), envvar='DATA_DIR')
-@click.argument('output_filepath', type=click.Path(), default='.')
-def main(input_filepath, output_filepath):
+@click.argument('import_url', envvar='IMPORT_URL')
+def main(input_filepath, import_url):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
     # Logging set up
+    start = time()
     logger = logging.getLogger(__name__)
-    logger.info('Making final data set from raw data\ngathering file names...')
+    log_import = logger.getChild('import_files')
+    logger.info('Importing from raw data')
     
     # Dataset variables
-    import_url = os.environ.get('IMPORT_URL')
     db_engine = create_engine(import_url, client_encoding='utf8')
     csvs = get_twitter_files(input_filepath)
     
     # Upload data
-    logger.info('Starting to upload {} csvs...'.format(len(csvs)))
-    for csv in csvs[:]:
-        import_file(csv, db_engine)
+    log_import.info('Starting to upload {} csvs...'.format(len(csvs)))
+    with click.progressbar(csvs, label='CSV Imports: ') as csv_progress:
+        for csv in csv_progress:
+            import_file(csv, db_engine)
 
+    log_import.info('{} files done in {:.2f} secs.'.format(len(csvs), time() - start))
 
 if __name__ == '__main__':
+    # Configure logging
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%H:%M:%S')
+    log_file = 'reports/pipeline.import.log'
+    logging.basicConfig(level=logging.INFO, 
+                    format=log_fmt, datefmt='%H:%M:%S',
+                    filename=log_file, filemode='w')
 
     # not used in this stub but often useful for finding various files
     project_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
@@ -143,8 +165,5 @@ if __name__ == '__main__':
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())
-    
-    # Clear terminal before outputting a bynch of logs
-    #click.clear()
 
     main()

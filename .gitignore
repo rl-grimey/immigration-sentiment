@@ -112,3 +112,6 @@ ENV/
 
 # exclude data from source control by default
 /data/
+
+# Exclude downloaded GloVe model
+models/glove/glove.twitter.27B.*.txt
