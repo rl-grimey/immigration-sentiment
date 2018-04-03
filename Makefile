@@ -1,80 +1,123 @@
-.PHONY: clean data requirements 
-
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
-PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+# Project
 PROFILE = default
 PROJECT_NAME = immigration-sentiment
-PYTHON_INTERPRETER = python3
+PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-ifeq (,$(shell which conda))
-HAS_CONDA=False
-else
-HAS_CONDA=True
-endif
+# Python
+PYTHON_INTERPRETER = python3
+CONDA_HOME = $(HOME)/.anaconda3
+CONDA_BIN_DIR = $(CONDA_HOME)/bin
+CONDA = $(CONDA_BIN_DIR)/conda
+CONDA_INSTALLER = miniconda_linux-x86_64.sh
+
+# Environment
+ENV_DIR = $(CONDA_HOME)/envs/$(PROJECT_NAME)
+ENV_BIN_DIR = $(ENV_DIR)/bin
+ENV_LIB_DIR = $(ENV_DIR)/lib
+ENV_PYTHON = $(ENV_BIN_DIR)/python
 
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
 
-## Download NLTK + GloVe models
-models: 
-	#$(PYTHON_INTERPRETER) -m nltk.downloader stopwords verbnet punkt wordnet
-	$(MAKE) -C models
+## Sets up our project for a new user.
+00-environment: install-conda install-environment update-environment .env
 
-## Make Dataset
-data: create_tables
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+## Creates database and uploads csvs.
+01-data: create-database reports/pipeline.import.log reports/pipeline.filter.log
 
-## Create PostgreSQL tables if they don't exist
-create_tables: requirements
-	$(PYTHON_INTERPRETER) src/data/make_database.py
+## Expose a port for remote Jupyter SSH session
+jupyter-serve:
+	jupyter notebook --no-browser --port 8889
+	@echo 
 
-## Install Python Dependencies
-requirements: test_environment
-	pip install -qU pip setuptools wheel
-	pip install -qr requirements.txt
-
-## Test python environment is setup correctly
-test_environment:
-	$(PYTHON_INTERPRETER) test_environment.py
+## Connects to remote Jupyter session
+jupyter-connect:
+	@echo 'Replace the following with your information'
+	@echo 'ssh -N -L localhost:8889:localhost:8889 remote_user@remote_host'
+	@echo 
 
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
-
-#######
-## Activate our conda environment
-activate_environment:
-	
-
-## Set up python interpreter environment
-create_environment:
-ifeq (True,$(HAS_CONDA))
-		@echo ">>> Detected conda, creating conda environment."
-ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3.6
-else
-	conda create --name $(PROJECT_NAME) python=2.7
-endif
-		@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
-else
-	@pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
-endif
-
+	find . -type d -name ".ipynb_checkpoints" -exec rm -r "{}" \;
+	@echo
 
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
 
+variables:
+	@echo 'PROFILE: ' $(PROFILE)
+	@echo 'PROJECT_NAME: ' $(PROJECT_NAME)
+	@echo 'PROJECT_DIR: ' $(PROJECT_DIR)
+	@echo
+	@echo 'PYTHON_INTERPRETER: ' $(PYTHON_INTERPRETER)
+	@echo 'CONDA_HOME: ' $(CONDA_HOME)
+	@echo 'CONDA_BIN_DIR: ' $(CONDA_BIN_DIR)
+	@echo 'CONDA: ' $(CONDA)
+	@echo 'CONDA_INSTALLER: ' $(CONDA_INSTALLER)
+	@echo
+	@echo 'ENV_DIR: ' $(ENV_DIR)
+	@echo 'ENV_BIN_DIR: ' $(ENV_BIN_DIR)
+	@echo 'ENV_LIB_DIR: ' $(ENV_LIB_DIR)
+	@echo 'ENV_PYTHON: ' $(ENV_PYTHON)
 
+install-conda:
+ifeq (,$(shell which conda))
+	@echo '>>> Downloading Conda python package manager'
+	@wget -q --no-use-server-timestamps http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $(CONDA_INSTALLER)
+	@echo '>>> Installing Conda'
+	@bash $(CONDA_INSTALLER) -b -p $(CONDA_HOME)
+	@echo '>>> Making a backup of .bashrc and adding Conda to PATH'
+	@cp ~/.bashrc ~/.bashrc.bak
+	@printf '\n\n# Anaconda Python Distribution' >> ~/.bashrc
+	@printf '\nexport PATH='$(CONDA_BIN_DIR)':$$PATH' >> ~/.bashrc
+	@rm $(CONDA_INSTALLER)
+else
+	@echo '>>> Found Conda installation. Updating base'
+	@conda update -n base conda
+endif
+
+uninstall-conda:
+	@echo 'Uninstalling conda'
+	@rm ~/.bashrc
+	@mv ~/.bashrc.bak ~/.bashrc
+	@rm -rf $(CONDA_HOME)
+
+install-environment:
+	@echo '>>> Creating new Python project environment'
+	@conda env create --name $(PROJECT_NAME) python=3.6
+
+update-environment: environment.yml
+	@echo '>>> Updating Python environment'
+	@conda env update --name $(PROJECT_NAME) -f $<
+
+.env: src/utils/make_environment.py
+	@echo '>>> Creating environment configuration file'
+	@$(ENV_PYTHON) src/utils/make_environment.py
+
+create-database: src/data/database.py src/data/createdb.sql .env
+	@echo '>>> Creating database tables'
+	@${ENV_PYTHON} $< src/data/createdb.sql
+
+reset-database: src/data/database.py src/data/dropdb.sql .env
+	@echo '>>> Dropping database tables'
+	@${ENV_PYTHON} $< src/data/dropdb.sql
+	@rm reports/pipeline.*.log
+
+reports/pipeline.import.log: src/data/make_dataset.py .env
+	@echo '>>> Uploading CSVs to database.'
+	@$(ENV_PYTHON) $<
+
+reports/pipeline.filter.log: src/data/make_filtered.py reports/pipeline.import.log .env
+	@echo '>>> Filtering raw tweets from database'
+	@$(ENV_PYTHON) $<
 
 
 #################################################################################
@@ -98,7 +141,7 @@ endif
 # 	* print line
 # Separate expressions are necessary because labels cannot be delimited by
 # semicolon; see <http://stackoverflow.com/a/11799865/1968>
-.PHONY: show-help
+.PHONY: show-help install-conda install-environment 00-environment 01-data
 show-help:
 	@echo "$$(tput bold)Available rules:$$(tput sgr0)"
 	@echo
