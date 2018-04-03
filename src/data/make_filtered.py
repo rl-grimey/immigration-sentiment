@@ -32,6 +32,7 @@ WHERE
     (retweet IS NULL) AND
     (LEFT(language, 2) LIKE 'en') AND
     (latitude IS NOT NULL) AND
+    (date >= '2016-12-30 04:00:00' AND date < '2017-02-24 04:00:00') AND
     (longitude IS NOT NULL);
 """
 

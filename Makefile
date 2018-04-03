@@ -9,7 +9,7 @@ PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # Python
 PYTHON_INTERPRETER = python3
-CONDA_HOME = $(HOME)/.anaconda3
+CONDA_HOME = $(HOME)/minicond3
 CONDA_BIN_DIR = $(CONDA_HOME)/bin
 CONDA = $(CONDA_BIN_DIR)/conda
 CONDA_INSTALLER = miniconda_linux-x86_64.sh
@@ -80,8 +80,7 @@ ifeq (,$(shell which conda))
 	@printf '\nexport PATH='$(CONDA_BIN_DIR)':$$PATH' >> ~/.bashrc
 	@rm $(CONDA_INSTALLER)
 else
-	@echo '>>> Found Conda installation. Updating base'
-	@conda update -n base conda
+	@echo '>>> Found Conda installation.'
 endif
 
 uninstall-conda:
@@ -92,11 +91,12 @@ uninstall-conda:
 
 install-environment:
 	@echo '>>> Creating new Python project environment'
-	@conda env create --name $(PROJECT_NAME) python=3.6
+	@${CONDA} env create --name $(PROJECT_NAME) python=3.6
 
 update-environment: environment.yml
 	@echo '>>> Updating Python environment'
-	@conda env update --name $(PROJECT_NAME) -f $<
+	@echo $(PROJECT_NAME)
+	@${CONDA} env update --name $(PROJECT_NAME) -f $<
 
 .env: src/utils/make_environment.py
 	@echo '>>> Creating environment configuration file'

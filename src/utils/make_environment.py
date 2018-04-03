@@ -28,7 +28,7 @@ def main():
     default_db = 'immigrationsentiment'
     default_host = 'localhost'
     default_port = 5432
-    default_data = '/data/backed_up/'
+    default_data = '/data/backed_up/twitter/data/Immigrant'
 
     approval_str = """
 -------------------------------------------------------------------------------
