@@ -1,8 +1,8 @@
 ###############################################################################
 # Makefile to download and convert U.S. County .shp files					  #
 ###############################################################################
-# Globals
 
+## Variables
 # Input URL: 2017 U.S. Tiger Line data
 COUNTY_URL = 'https://www2.census.gov/geo/tiger/TIGER2017/COUNTY/tl_2017_us_county.zip'
 
@@ -14,6 +14,7 @@ FILE_FORMATS = .cpg .dbf .prj .shp .shp.xml .shx
 COUNTY_FILES = $(foreach format, $(FILE_FORMATS), counties/tl_2017_us_county$(format))
 
 
+## Commands
 # Download zip file from U.S. Census
 $(COUNTY_ZIP):
 	mkdir -p counties
@@ -30,4 +31,3 @@ $(COUNTY_FILES): $(COUNTY_ZIP)
 
 clean: $(COUNTY_FILES)
 	rm $(COUNTY_ZIP)
-
