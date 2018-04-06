@@ -41,7 +41,7 @@ to_clean = re.compile(twokenize.regex_or(
 ), re.UNICODE)
 
 # For SQL ingestion
-message_sql = 'SELECT "tweetID", "message" FROM filter_tweets LIMIT 10000;'
+message_sql = 'SELECT "tweetID", "message" FROM filter_tweets;'
 
 
 ###############################################################################
@@ -76,6 +76,9 @@ def langid_clf(text):
 def format_filter(df):
     """ Function to format a SQL command with a list of IDs taken from a dataframe.
     """
+    # Write out to file
+    df.to_csv('langids.csv')
+
     # Gather non english tweets into a list
     non_english_mask = df[df.langid != 'en']
     tweet_ids_list = non_english_mask['tweetID'].astype(str).values.tolist()
