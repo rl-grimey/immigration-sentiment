@@ -10,24 +10,41 @@ COUNTY_URL = 'https://www2.census.gov/geo/tiger/TIGER2017/COUNTY/tl_2017_us_coun
 COUNTY_ZIP = us_counties.zip
 
 # File formats
-FILE_FORMATS = .cpg .dbf .prj .shp .shp.xml .shx
-COUNTY_FILES = $(foreach format, $(FILE_FORMATS), counties/tl_2017_us_county$(format))
+FILE_FORMATS = cpg dbf prj shp shp.xml shx
+UNZIP_FILES  = $(foreach format, $(FILE_FORMATS), counties/tl_2017_us_county.$(format))
+COUNTY_FILES = $(foreach format, $(FILE_FORMATS), counties/counties.$(format))
 
 
 ## Commands
 # Download zip file from U.S. Census
 $(COUNTY_ZIP):
-	mkdir -p counties
-	curl $(COUNTY_URL) -o $@
+	@echo '>>> Downloading U.S. County shapefile.'
+	@mkdir -p counties
+	@curl $(COUNTY_URL) -o $@
 
 # Unzip file into directory
-$(COUNTY_FILES): $(COUNTY_ZIP)
-	unzip -n -d counties $(COUNTY_ZIP)
-	touch $@
+$(UNZIP_FILES): $(COUNTY_ZIP)
+	@unzip -q -n -d counties $(COUNTY_ZIP)
 
-# transform: extract
+# transform: extract just the columns of interest and reproject to standard
+$(COUNTY_FILES): $(UNZIP_FILES)
+	@echo '>>> Filtering and reprojecting shapefile to WGS 84.'
+	@ogr2ogr -overwrite \
+			-select STATEFP,COUNTYFP,GEOID,NAME \
+			-t_srs "EPSG:4326" \
+			counties/counties.shp counties/tl_2017_us_county.shp \
+			tl_2017_us_county
 
-# upload: transform
+# Upload to Postgres
+# python script?
 
-clean: $(COUNTY_FILES)
-	rm $(COUNTY_ZIP)
+
+# Steps for getting file into database.
+all: $(COUNTY_ZIP) $(UNZIP_FILES) $(COUNTY_FILES) clean
+
+# Clean up and remove downloaded zip, unfiltered extracts.
+clean:
+	@echo '>>> Removing downloaded/uneeded files.'
+	@rm $(COUNTY_ZIP) $(UNZIP_FILES) \
+	counties/tl_2017_us_county.shp.ea.iso.xml \
+	counties/tl_2017_us_county.shp.iso.xml
