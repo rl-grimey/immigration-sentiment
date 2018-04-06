@@ -47,6 +47,7 @@ dependencies:
   - dbfread=2.0.7=py36ha5008bc_0
   - dbus=1.13.2=hc3f9b76_0
   - docutils=0.14=py36hb0f60f5_0
+  - elasticsearch=6.2.0=py36_0
   - entrypoints=0.2.3=py36h1aec115_2
   - et_xmlfile=1.0.1=py36hd6bccc3_0
   - expat=2.2.5=he0dffb1_0
@@ -151,7 +152,16 @@ dependencies:
   - zeromq=4.2.3=h439df22_3
   - zlib=1.2.11=ha838bed_2
   - pip:
+    - attrs==17.4.0
+    - funcy==1.10.1
+    - future==0.16.0
+    - joblib==0.11
     - langid==1.1.6
     - mlxtend==0.6.0
+    - more-itertools==4.1.0
+    - numexpr==2.6.4
+    - pluggy==0.6.0
+    - py==1.5.3
+    - pyldavis==2.1.1
+    - pytest==3.5.0
 prefix: /home/rlrson/minicond3/envs/immigration-sentiment
-
