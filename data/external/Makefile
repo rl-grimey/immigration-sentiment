@@ -39,8 +39,10 @@ $(COUNTY_FILES): $(UNZIP_FILES)
 # python script?
 
 
-# Steps for getting file into database.
-all: $(COUNTY_ZIP) $(UNZIP_FILES) $(COUNTY_FILES) clean
+## Steps for getting file into database.
+download: $(COUNTY_ZIP) $(UNZIP_FILES)
+transform: $(COUNTY_FILES)
+all: download transform clean 
 
 # Clean up and remove downloaded zip, unfiltered extracts.
 clean:
