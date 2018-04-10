@@ -20,20 +20,16 @@ filters = {
 }
 
 filter_query = """
-INSERT INTO
-    filter_tweets
-SELECT 
-    DISTINCT ON ("tweetID") 
-    * 
-FROM 
-    raw_tweets
-WHERE
-    (message IS NOT NULL) AND
-    (retweet IS NULL) AND
-    (LEFT(language, 2) LIKE 'en') AND
-    (latitude IS NOT NULL) AND
-    (date >= '2016-12-30 04:00:00' AND date < '2017-02-24 04:00:00') AND
-    (longitude IS NOT NULL);
+INSERT INTO filter_tweets 
+SELECT DISTINCT ON ("tweetID") * 
+FROM   raw_tweets 
+WHERE  ( message IS NOT NULL ) 
+       AND ( retweet IS NULL ) 
+       AND ( LEFT(language, 2) ~* 'en' ) 
+       AND ( latitude IS NOT NULL )
+       AND ( longitude IS NOT NULL )
+       AND ( DATE >= '2016-12-30 08:00:00+00:00:00' 
+           AND DATE < '2017-02-25 08:00:00+00:00' ) ;
 """
 
 
@@ -42,7 +38,7 @@ WHERE
 ###############################################################################
 
 def main():
-    """
+    """ 
     """
     # Logging set up
     logger = logging.getLogger(__name__)
@@ -53,11 +49,11 @@ def main():
     database_url = os.environ.get('DATABASE_URL')
     conn = pg.connect(database_url)
     curr = conn.cursor()
+    
+    # Drop tweets from existing table 
+    curr.execute('DELETE FROM filter_tweets WHERE "tweetID" IS NOT NULL;')
 
-    # Drop tweets from existing table for now
-    #curr.execute('DELETE FROM filter_tweets WHERE "tweetID" IS NOT NULL;')
-
-    # Get filter counts
+    # Get filter counts for each column value
     log_filter.info('getting filtered counts')
     for col in filters.keys():
         query = 'SELECT COUNT(*) FROM raw_tweets WHERE ' + filters[col] + ';'
@@ -70,6 +66,7 @@ def main():
     # Create filtered tweets table
     logger.info('Inserting valid tweets into filter_tweets table.')
     curr.execute(filter_query)
+    conn.commit()
 
     # Grab count from table
     curr.execute('SELECT COUNT(*) FROM filter_tweets;')

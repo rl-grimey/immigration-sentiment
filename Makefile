@@ -20,6 +20,13 @@ ENV_BIN_DIR = $(ENV_DIR)/bin
 ENV_LIB_DIR = $(ENV_DIR)/lib
 ENV_PYTHON = $(ENV_BIN_DIR)/python
 
+# Project files
+FEATURE_LOGS = data/interim/features.lang.log \
+	data/interim/features.space.log \
+	data/interim/features.time.log
+
+
+
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
@@ -27,8 +34,11 @@ ENV_PYTHON = $(ENV_BIN_DIR)/python
 ## Sets up our project for a new user.
 00-environment: install-conda install-environment update-environment .env
 
-## Creates database and uploads csvs.
+## Creates database, upload csvs, filter data.
 01-data: create-database reports/pipeline.import.log reports/pipeline.filter.log
+
+## Create features from our data and consolidate into one table.
+02-features: $(FEATURE_LOGS) data/interim/features.log
 
 ## Expose a port for remote Jupyter SSH session
 jupyter-serve:
@@ -68,6 +78,8 @@ variables:
 	@echo 'ENV_LIB_DIR: ' $(ENV_LIB_DIR)
 	@echo 'ENV_PYTHON: ' $(ENV_PYTHON)
 
+
+# Environment
 install-conda:
 ifeq (,$(shell which conda))
 	@echo '>>> Downloading Conda python package manager'
@@ -102,6 +114,8 @@ update-environment: environment.yml
 	@echo '>>> Creating environment configuration file'
 	@$(ENV_PYTHON) src/utils/make_environment.py
 
+
+# Data
 create-database: src/data/database.py src/data/createdb.sql .env
 	@echo '>>> Creating database tables'
 	@${ENV_PYTHON} $< src/data/createdb.sql
@@ -117,7 +131,29 @@ reports/pipeline.import.log: src/data/make_dataset.py .env
 
 reports/pipeline.filter.log: src/data/make_filtered.py reports/pipeline.import.log .env
 	@echo '>>> Filtering raw tweets from database'
-	@$(ENV_PYTHON) $<
+	@python $<
+
+
+# Features
+data/interim/features.lang.log: src/features/lang_features.py reports/pipeline.filter.log .env
+	@echo '>>> Classifying languages and adding to features.'
+	@python $<
+	@touch $@
+	
+data/interim/features.space.log: src/features/space_features.py reports/pipeline.filter.log .env
+	@echo '>>> Joining tweets with U.S. counties to create spacial features.'
+	@python $<
+	@touch $@
+	
+data/interim/features.time.log: src/features/time_features.py reports/pipeline.filter.log .env
+	@echo '>>> Categorizing tweets into their time periods.'
+	@python $<
+	@touch $@
+	
+data/interim/features.log: src/features/build_features.py $(FEATURE_LOGS) .env
+	@echo '>>> Joining feature tables and creating canonical table!'
+	@python $<
+	@touch $@
 
 
 #################################################################################
